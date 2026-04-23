@@ -1,0 +1,53 @@
+set dotenv-load
+
+# Create postgres container
+pg_up:
+    docker compose up -d
+
+# Remove container
+pg_down:
+    docker compose down
+
+# Start postgresql service
+pg_start:
+    docker compose start
+
+# Stop postgresql service
+pg_stop:
+    docker compose stop
+
+# Create bankdb
+createdb:
+    docker compose exec db createdb --username=$POSTGRES_USER --owner=$POSTGRES_USER bankdb ...
+
+# Drop bankdb
+dropdb:
+    docker compose exec db dropdb --username=$POSTGRES_USER bankdb
+
+# Apply migration to create tables, all migration
+migrateup:
+    migrate -path db/migrations -database "postgres://app_user:pswd@localhost:5436/bankdb?sslmode=disable" -verbose up
+
+# Apply migration to create "users" table, only one migration
+migrateup1:
+    migrate -path db/migrations -database "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/bankdb?sslmode=disable" -verbose up 1
+
+# Apply migration to delete(drop) tables, all migration
+migratedown:
+    migrate -path db/migrations -database "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/bankdb?sslmode=disable" -verbose down
+
+# Apply migration to delete(drop) "users" table, only one migration
+migratedown1:
+    migrate -path db/migrations -database "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/bankdb?sslmode=disable" -verbose down 1
+
+# Generate sqlc code
+sqlc:
+    sqlc generate
+
+# Testing code
+test:
+    go test -v -cover -timeout 180s ./... -count=1
+
+# Start backend server
+start:
+    go run main.go
