@@ -9,34 +9,37 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-type createEntryRequest struct {
-	AccountID int64 `json:"accountid" binding:"required"`
-	Amount    int64 `json:"amount" binding:"required"`
+type CreateTransferParams struct {
+	FromAccountID int64 `json:"from_account_id" binding:"required"`
+	ToAccountID   int64 `json:"to_account_id" binding:"required"`
+	Amount        int64 `json:"amount" binding:"required"`
 }
 
-type updateEntryRequest struct {
-	AmountID int64 `json:"amountid" binding:"required"`
-	Amount   int64 `json:"amount" binding:"required"`
+type updateTransferRequest struct {
+	ID          int64 `json:"id" binding:"required"`
+	Amount      int64 `json:"amount" binding:"required"`
+	ToAccountID int64 `json:"to_account_id" binding:"required"`
 }
 
-type createEntryResponse struct {
+type createTransferResponse struct {
 	AccountID int64 `json:"accountid"`
 }
 
-func (server *Server) CreateEntry(ctx *gin.Context) {
-	var req createEntryRequest
+func (server *Server) CreateTransfer(ctx *gin.Context) {
+	var req CreateTransferParams
 	// получаем JSON и выполняем десериализацию
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	arg := db.CreateEntryParams{
-		AccountID: req.AccountID,
-		Amount:    req.Amount,
+	arg := db.CreateTransferParams{
+		FromAccountID: req.FromAccountID,
+		ToAccountID:   req.ToAccountID,
+		Amount:        req.Amount,
 	}
-	// создаем пользователя в БД и обрабатывем ошибки(уникальность и БД)
-	entry, err := server.store.CreateEntry(ctx, arg)
+
+	entry, err := server.store.CreateTransfer(ctx, arg)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -50,26 +53,22 @@ func (server *Server) CreateEntry(ctx *gin.Context) {
 		return
 	}
 
-	// сформировать структуру для ответа
-	rsp := createEntryResponse{
-		AccountID: entry.AccountID,
-	}
-	ctx.JSON(http.StatusOK, rsp)
+	ctx.JSON(http.StatusOK, gin.H{"response": entry.ID})
 }
 
-type delteEntryRQ struct {
-	AccountID int64 `json:"accountid"`
+type delteTransferRQ struct {
+	ID int64 `json:"id"`
 }
 
-func (server *Server) DeleteEntry(ctx *gin.Context) {
-	var req delteEntryRQ
+func (server *Server) DeleteTransfer(ctx *gin.Context) {
+	var req delteTransferRQ
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	err := server.store.DeleteEntry(ctx, req.AccountID)
+	err := server.store.DeleteTransfer(ctx, req.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -78,19 +77,19 @@ func (server *Server) DeleteEntry(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"response": "Успешное удаление"})
 }
 
-func (server *Server) UpdateEntry(ctx *gin.Context) {
-	var req updateEntryRequest
-	// получаем JSON и выполняем десериализацию
+func (server *Server) UpdateTransfer(ctx *gin.Context) {
+	var req updateTransferRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	arg := db.UpdateEntryParams{
-		ID:     req.AmountID,
-		Amount: req.Amount,
+	arg := db.UpdateTransferParams{
+		ID:          req.ID,
+		Amount:      req.Amount,
+		ToAccountID: req.ToAccountID,
 	}
-	entry, err := server.store.UpdateEntry(ctx, arg)
+	entry, err := server.store.UpdateTransfer(ctx, arg)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
