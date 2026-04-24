@@ -27,7 +27,6 @@ func NewServer(store *db.Store) *Server {
 	router.PUT("/entry", server.UpdateEntry)
 
 	//transfer routes
-
 	router.POST("/transfer", server.CreateTransfer)
 	router.DELETE("/transfer", server.DeleteTransfer)
 	router.PUT("/transfer", server.UpdateTransfer)
